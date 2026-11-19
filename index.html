@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="在八卦战场侦察、调兵与修路，迎战你接入的大模型。">
+  <title>关口争夺 · 八卦战场</title>
+  <link rel="stylesheet" href="style.css">
+  <script type="module" src="app.js"></script>
+</head>
+<body>
+  <div class="shell">
+    <header class="masthead">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true"></span>
+        <div><span class="brand-name">关口争夺</span><span class="brand-mode">八卦战场</span></div>
+      </div>
+      <nav aria-label="游戏菜单">
+        <button class="button quiet" id="show-levels" hidden>返回选关</button>
+        <button class="button quiet" id="show-rules">玩法说明</button>
+        <button class="button secondary" id="jump-setup" hidden>接入模型</button>
+        <button class="button quiet" id="show-api" hidden>API 设置</button>
+      </nav>
+    </header>
+
+    <main>
+      <section class="atlas" id="level-screen" aria-labelledby="atlas-title">
+        <header class="atlas-heading">
+          <div><h1 id="atlas-title" tabindex="-1">选择关卡</h1><p>选一个卦位，查看地形与元素规则。</p></div>
+          <button class="button secondary" id="resume-battle" type="button" hidden>返回对局</button>
+        </header>
+        <div class="atlas-grid">
+          <div class="atlas-selector surface">
+            <div class="level-grid" id="level-grid" aria-label="按后天方位选关">
+              <div class="compass-center" aria-hidden="true">
+                <span class="compass-rose"></span><span>后天方位</span>
+              </div>
+            </div>
+            <button class="button quiet" id="select-classic" type="button" aria-pressed="false">风门关 · 经典</button>
+            <div class="feature-notes">
+              <p id="level-brief"></p>
+              <div class="feature-element" id="level-element"><strong id="level-element-label"></strong><p id="level-summary"></p></div>
+            </div>
+          </div>
+          <article class="atlas-feature surface" id="level-feature" aria-labelledby="level-title">
+            <header class="feature-heading">
+              <div class="feature-identity">
+                <span class="feature-emblem" id="level-symbol" aria-hidden="true">☴</span>
+                <div><h2 id="level-title">回风峡</h2><p id="level-meta"></p></div>
+              </div>
+              <button class="button primary" id="confirm-level" type="button">进入关卡</button>
+            </header>
+            <p class="action-notice error" id="level-notice" role="alert" hidden></p>
+            <div class="atlas-map">
+              <canvas id="level-preview" role="img" aria-label="关卡地图预览"></canvas>
+              <div class="map-label north" aria-hidden="true"><span></span>北</div>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section id="battle-screen" aria-label="战场" hidden>
+      <section class="overview" aria-label="对局状态">
+        <div class="turn-title">
+          <p id="turn-number">对战准备</p>
+          <h1 id="phase-title" tabindex="-1">回风峡</h1>
+        </div>
+        <ol class="phase-track" aria-label="回合流程">
+          <li data-phase="plan"><i aria-hidden="true"></i><span>侦察下令</span></li>
+          <li data-phase="march"><i aria-hidden="true"></i><span>即时行军</span></li>
+          <li data-phase="build"><i aria-hidden="true"></i><span>结算建设</span></li>
+        </ol>
+        <div class="turn-values" id="turn-values" hidden>
+          <div><span>行动点</span><strong id="points">4</strong></div>
+          <div id="clock-box" hidden><span id="clock-label">剩余行军</span><strong id="clock">20.0</strong></div>
+        </div>
+      </section>
+
+      <div class="layout">
+        <div class="left-column">
+          <section class="map-card surface" aria-labelledby="map-title">
+            <header class="map-heading">
+              <div><h2 id="map-title">战区地图</h2><p id="map-instruction">侦察、调兵与攻占都在这张地图上进行。</p></div>
+              <button class="button location" id="map-level" type="button" aria-label="选择关卡">☴ 巽 · 风</button>
+            </header>
+            <div class="element-panel" id="element-panel" aria-label="元素状态">
+              <div class="element-row">
+                <span id="element-symbol" class="element-symbol" aria-hidden="true">☴</span>
+                <div class="element-label">
+                  <span id="element-terrain"></span><strong id="element-state"></strong>
+                </div>
+                <div class="element-forecast">
+                  <span id="element-next"></span><strong id="element-clock"></strong>
+                </div>
+              </div>
+              <progress id="element-progress" max="1" value="0" aria-label="本次元素变化进度"></progress>
+              <p id="element-detail"></p>
+            </div>
+            <div class="map-stage" id="map-stage">
+              <canvas id="terrain" aria-hidden="true"></canvas>
+              <div class="map-nodes" id="map-nodes" aria-label="地图据点"></div>
+              <div class="map-label north" aria-hidden="true"><span></span>北</div>
+            </div>
+            <footer class="legend" aria-label="地图图例">
+              <span><i class="dot blue"></i>你的部队</span>
+              <span><i class="dot red"></i>模型部队</span>
+              <span><i class="dot neutral"></i>中立</span>
+              <span><i class="road-key"></i>快速道路</span>
+              <span id="element-key" hidden><i class="effect-key"></i>元素作用区</span>
+            </footer>
+          </section>
+          <section class="log-card surface" id="log-card" aria-labelledby="log-title" hidden>
+            <header><h2 id="log-title">战报</h2><span id="log-round"></span></header>
+            <ol id="log" aria-live="polite" aria-relevant="additions"></ol>
+          </section>
+        </div>
+
+        <aside class="right-column" aria-label="指挥面板">
+          <section class="surface panel" id="setup">
+            <div class="panel-heading"><h2>接入模型</h2><p>填写兼容 Chat Completions 的 API，连接后即可指挥蓝方开战。</p></div>
+            <div id="setup-form"></div>
+          </section>
+
+          <section class="surface objectives" aria-labelledby="objective-title">
+            <div class="objective-icon" aria-hidden="true"><span></span></div>
+            <div>
+              <h2 id="objective-title">夺取回风关</h2>
+              <p>连续两个轮末控制中央关口，或在轮末占领对方指挥部，即可获胜。</p>
+              <div class="hold-status" id="hold-status" hidden>
+                <span class="blue-txt">你 <strong id="hold-blue"></strong></span>
+                <span class="red-txt">模型 <strong id="hold-red"></strong></span>
+              </div>
+            </div>
+          </section>
+
+          <section class="surface panel command-panel" id="command-panel" hidden>
+            <div class="panel-heading command-heading"><h2 id="command-title">下达指令</h2><p id="command-note"></p></div>
+            <div class="model-status" id="model-status">
+              <i aria-hidden="true"></i><div><strong id="model-name"></strong><span id="model-state" role="status"></span><span id="model-effort"></span></div>
+            </div>
+            <div class="model-error" id="model-error" hidden>
+              <p id="model-message" role="alert"></p>
+              <button class="button quiet" id="retry-model">重试模型</button>
+              <button class="button quiet" id="fix-api">修改设置</button>
+            </div>
+
+            <div class="command-body" id="command-body">
+              <div class="segmented" id="mode-bar" aria-label="指令类型"></div>
+              <div class="selection" id="selection"></div>
+              <div class="ratio-block" id="ratios" hidden>
+                <span>出兵比例</span>
+                <div class="segmented ratios" aria-label="出兵比例">
+                  <button type="button" data-ratio=".25">25%</button>
+                  <button type="button" data-ratio=".5">50%</button>
+                  <button type="button" data-ratio="1">100%</button>
+                </div>
+              </div>
+              <button class="button secondary wide" id="command-action" hidden></button>
+              <div class="planned" id="planned" hidden>
+                <h3>已安排的行军<span id="planned-count"></span></h3>
+                <ol id="orders"></ol>
+              </div>
+            </div>
+            <p class="action-notice" id="action-notice" role="status" hidden></p>
+            <button class="button primary wide" id="ready" hidden></button>
+          </section>
+        </aside>
+      </div>
+      </section>
+    </main>
+  </div>
+
+  <dialog class="dialog surface guide-dialog" id="rules-dialog" aria-labelledby="rules-title">
+    <div class="dialog-head"><h2 id="rules-title">玩法说明</h2><button class="button quiet close-dialog" aria-label="关闭玩法说明">关闭</button></div>
+    <p class="guide-intro">你指挥蓝方，接入的模型指挥红方。地图里的「?」表示驻军未知，中立据点的兵数公开。</p>
+    <ol class="guide-turns" aria-label="一轮对局的三个阶段">
+      <li><h3>侦察下令</h3><p>先点己方据点，再点目标，选择 25%、50% 或 100% 的兵力并确认。拖拽到目标可按当前比例直接下令。每轮可花 1 行动点侦察一个相邻据点。</p></li>
+      <li><h3>即时行军</h3><p>点「开始行军」后，双方的预设部队同时出发。双方各能追加一次，部队须在 20 秒行军期内抵达。行军到第 3 秒会等模型完成增援决策，再继续计时。</p></li>
+      <li><h3>结算建设</h3><p>每 1 行动点可在己方指挥部或中央关口征募 3 兵，或连接两个相邻的己方据点。新占的基地在结算时奖励 1 点，自有基地下一轮各提供 1 点。</p></li>
+    </ol>
+    <div class="guide-details">
+      <section><h3>路线与交战</h3><p>进攻沿相邻路径。普通路径每段基准 5 秒，铺路后可沿连通的己方道路跨格调兵，每段基准 1.5 秒。同刻抵达的部队先按阵营合兵。基础交战中，5 兵打 4 名中立守军，胜方留下 1 兵占领据点。</p></section>
+      <section><h3>胜利条件</h3><p>连续两次在轮末控制中央关口，或在轮末占领对方指挥部。双方同轮达成胜利条件则平局。</p></section>
+    </div>
+    <section class="guide-level" id="guide-level">
+      <h3 id="guide-level-title"></h3>
+      <p id="guide-level-layout"></p>
+      <p id="guide-level-effect"></p>
+      <p id="guide-level-hint">元素进度条和地图标记会提示生效范围与下次变化。模型读取同一份元素状态。</p>
+    </section>
+  </dialog>
+
+  <dialog class="dialog surface" id="api-dialog" aria-labelledby="api-title">
+    <div class="dialog-head"><h2 id="api-title">API 设置</h2><button class="button quiet close-dialog" aria-label="关闭设置">关闭</button></div>
+    <div id="settings-form"></div>
+  </dialog>
+
+  <template id="api-form">
+    <form class="api-form" autocomplete="off">
+      <label>API 地址<input name="endpoint" type="url" required placeholder="https://服务地址/v1" spellcheck="false" maxlength="1024"></label>
+      <label>模型名<input name="model" required placeholder="服务商指定的模型 ID" spellcheck="false" maxlength="160"></label>
+      <label>API 密钥<input name="key" type="password" placeholder="如接口无需鉴权，可留空" maxlength="2048" autocomplete="off"></label>
+      <div class="profile-row" hidden>
+        <p class="profile-status" role="status" hidden></p>
+        <button class="button quiet profile-clear" type="button" hidden>移除已保存密钥</button>
+      </div>
+      <p class="api-note">设置自动保存在本机。默认请求模型最高推理档。</p>
+      <div class="form-buttons">
+        <button class="button quiet test-api" type="button">测试连接</button>
+        <button class="button primary submit-api" type="submit">开始对战</button>
+      </div>
+      <p class="api-feedback" role="status" hidden></p>
+    </form>
+  </template>
+</body>
+</html>
